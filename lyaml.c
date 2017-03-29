@@ -1,6 +1,6 @@
 /*
  * lyaml.c, LibYAML binding for Lua
- * 
+ *
  * Copyright (c) 2009-2012, Andrew Danforth <acd@weirdness.net>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -9,10 +9,10 @@
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -20,10 +20,10 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- * 
- * Portions of this software were inspired by Perl's YAML::LibYAML module by 
+ *
+ * Portions of this software were inspired by Perl's YAML::LibYAML module by
  * Ingy döt Net <ingy@cpan.org>
- * 
+ *
  */
 
 #include <string.h>
@@ -314,7 +314,7 @@ static void load(struct lua_yaml_loader *loader) {
       if (loader->event.type != YAML_DOCUMENT_END_EVENT)
          RETURN_ERRMSG(loader, "expected DOCUMENT_END_EVENT");
 
-      /* reset anchor table */ 
+      /* reset anchor table */
       lua_newtable(loader->L);
       lua_replace(loader->L, loader->anchortable_index);
    }
@@ -516,7 +516,7 @@ static int dump_array(struct lua_yaml_dumper *dumper, int style) {
 
 static int figure_style_type(lua_State *L) {
    int style = LUAYAML_ANY_STYLE;
-   
+
    if (lua_getmetatable(L, -1)) {
       /* has metatable, look for _yaml_style key */
       lua_pushliteral(L, "_yaml_style");
