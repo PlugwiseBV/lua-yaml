@@ -184,6 +184,38 @@ static void load_sequence(struct lua_yaml_loader *loader) {
       lua_rawseti(loader->L, -2, index++);
 }
 
+/*
+ * According to the YAML 1.1 specification, valid booleans are one of:
+ *   y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF
+ *
+ * Valid NULLs are:
+ *   ~|null|Null|NULL| # (Empty)
+ *
+ */
+
+static int is_null(const char *str, size_t len)
+{
+    return  0 == len
+        || (1 == len && str[0] == '~')
+        || (4 == len && (!strcmp(str, "null")   || !strcmp(str, "Null") || !strcmp(str, "NULL")));
+}
+
+static int is_true(const char *str, size_t len)
+{
+   return  (1 == len && (!strcmp(str, "y")     || !strcmp(str, "Y")))
+        || (2 == len && (!strcmp(str, "on")     || !strcmp(str, "On")       || !strcmp(str, "ON")))
+        || (3 == len && (!strcmp(str, "yes")    || !strcmp(str, "Yes")      || !strcmp(str, "YES")))
+        || (4 == len && (!strcmp(str, "true")   || !strcmp(str, "True")     || !strcmp(str, "TRUE")));
+}
+
+static int is_false(const char *str, size_t len)
+{
+    return (1 == len && (!strcmp(str, "n")     || !strcmp(str, "N")))
+        || (2 == len && (!strcmp(str, "no")     || !strcmp(str, "No")       || !strcmp(str, "NO")))
+        || (3 == len && (!strcmp(str, "off")    || !strcmp(str, "Off")      || !strcmp(str, "OFF")))
+        || (5 == len && (!strcmp(str, "false")  || !strcmp(str, "False")    || !strcmp(str, "FALSE")));
+}
+
 static void load_scalar(struct lua_yaml_loader *loader) {
    const char *str = (char *)loader->event.data.scalar.value;
    unsigned int length = loader->event.data.scalar.length;
@@ -210,21 +242,24 @@ static void load_scalar(struct lua_yaml_loader *loader) {
       }
    }
 
-   if (loader->event.data.scalar.style == YAML_PLAIN_SCALAR_STYLE) {
-      if (!strcmp(str, "~")) {
-         if (Load_Nulls_As_Nil)
-            lua_pushnil(loader->L);
-         else
-            l_null(loader->L);
-         return;
-      } else if (!strcmp(str, "true") || !strcmp(str, "yes")) {
-         lua_pushboolean(loader->L, 1);
-         return;
-      } else if (!strcmp(str, "false") || !strcmp(str, "no")) {
-         lua_pushboolean(loader->L, 0);
-         return;
-      }
-   }
+    if (loader->event.data.scalar.style == YAML_PLAIN_SCALAR_STYLE) {
+        size_t len = strlen(str);
+        if (len < 6) {
+            if (is_null(str, len)) {
+                if (Load_Nulls_As_Nil)
+                   lua_pushnil(loader->L);
+                else
+                   l_null(loader->L);
+                return;
+            } else if (is_true(str, len)) {
+                lua_pushboolean(loader->L, 1);
+                return;
+            } else if (is_false(str, len)) {
+                lua_pushboolean(loader->L, 0);
+                return;
+            }
+        }
+    }
 
    lua_pushlstring(loader->L, str, length);
 
@@ -387,9 +422,7 @@ static int dump_scalar(struct lua_yaml_dumper *dumper) {
 
    if (type == LUA_TSTRING) {
       str = lua_tolstring(dumper->L, -1, &len);
-      if ((len == 4 && !strcmp(str, "true"))
-         || (len == 5 && !strcmp(str, "false"))
-         || (len == 1 && str[0] == '~')) {
+      if ((len < 6) && (is_null(str, len) || is_true(str, len) || is_false(str, len))) {
          style = YAML_SINGLE_QUOTED_SCALAR_STYLE;
       } else if ((is_binary = is_binary_string((const unsigned char *)str, len))) {
          tobase64(dumper->L, -1);
